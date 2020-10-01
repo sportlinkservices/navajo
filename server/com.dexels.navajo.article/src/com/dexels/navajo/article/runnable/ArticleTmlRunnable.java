@@ -39,45 +39,48 @@ import com.dexels.oauth.api.Client;
 
 @Deprecated
 public class ArticleTmlRunnable implements TmlRunnable{
+
     private static final Logger logger = LoggerFactory.getLogger(ArticleTmlRunnable.class);
 
     private final ArticleRuntime runtime;
     private final ArticleContext context;
     private final HttpServletRequest httpRequest;
     private final HttpServletResponse httpResponse;
-    
+
     private final Continuation continuation;
-    
+
     private Navajo requestNavajo;
     private RequestQueue requestQueue;
 
     private long scheduledAt;
 
-    
-    public ArticleTmlRunnable(HttpServletRequest req, HttpServletResponse resp, Client client, ArticleRuntime runtime, ArticleContext context, long requestTimeout) {
+
+    public ArticleTmlRunnable(HttpServletRequest req, HttpServletResponse resp, Client client,
+            ArticleRuntime runtime, ArticleContext context, long requestTimeout) {
+
         this.httpRequest = req;
         this.httpResponse = resp;
         this.runtime = runtime;
         this.context = context;
-
         continuation = ContinuationSupport.getContinuation(httpRequest);
-        continuation.setTimeout(requestTimeout); // 5 minutes
-        continuation.suspend(httpResponse);
-        
-        requestNavajo = NavajoFactory.getInstance().createNavajo();
-        Header h = NavajoFactory.getInstance().createHeader(requestNavajo, runtime.getArticleName(), runtime.getUsername(),"", -1);
-        requestNavajo.addHeader(h);
-        
+
         if (continuation.isExpired()) {
-            logger.warn("Expired continuation!");
+            logger.error("Expired continuation at request start!");
             abort("Internal server error");
-        }
-        if (!continuation.isInitial()) {
-            logger.warn("Non-initial continuation!");
+        } else if (!continuation.isInitial()) {
+            logger.error("Non-initial continuation at request start!");
             abort("Internal server error");
+        } else {
+            continuation.setTimeout(requestTimeout);
+            continuation.suspend(httpResponse);
+
+            requestNavajo = NavajoFactory.getInstance().createNavajo();
+            Header h = NavajoFactory.getInstance().createHeader(requestNavajo, runtime.getArticleName(),
+                    runtime.getUsername(), "", -1);
+            requestNavajo.addHeader(h);
         }
     }
-    
+
     @Override
     public void run() {
         try {
@@ -93,7 +96,7 @@ public class ArticleTmlRunnable implements TmlRunnable{
                 getRequestQueue().finished();
             }
         }
-        
+
 
     }
 
@@ -101,9 +104,9 @@ public class ArticleTmlRunnable implements TmlRunnable{
         try {
             runtime.getAccess().setQueueId(this.getRequestQueue().getId());
             runtime.getAccess().queueTime = (int) (System.currentTimeMillis() - scheduledAt);
-            
+
             runtime.execute(context);
-            
+
             runtime.getAccess().setExitCode(Access.EXIT_OK);
         } catch (NoJSONOutputException e) {
             httpResponse.setContentType(e.getMimeType());
@@ -206,11 +209,10 @@ public class ArticleTmlRunnable implements TmlRunnable{
     @Override
     public void abort(String reason) {
         fail(new ServletException(reason));
-
     }
 
     private void fail(Throwable t1) {
-        
+
         APIException exception = (t1 instanceof APIException) ? (APIException) t1
                 : new APIException(t1.getMessage(), t1, APIErrorCode.InternalError);
 
@@ -232,11 +234,11 @@ public class ArticleTmlRunnable implements TmlRunnable{
                 logger.error("Failed to deliver error {}", t3);
             }
         } finally {
-            continuation.complete();  
+            continuation.complete();
         }
 
     }
-    
+
     @Override
     public AsyncRequest getRequest() {
         return null;
