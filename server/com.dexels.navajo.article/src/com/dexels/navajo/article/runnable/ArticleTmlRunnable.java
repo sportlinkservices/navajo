@@ -55,11 +55,11 @@ public class ArticleTmlRunnable implements TmlRunnable{
     private long scheduledAt;
 
 
-    public ArticleTmlRunnable(HttpServletRequest req, HttpServletResponse resp, Client client,
-            ArticleRuntime runtime, ArticleContext context, long requestTimeout) {
+    public ArticleTmlRunnable(HttpServletRequest request, HttpServletResponse response,
+            Client client, ArticleRuntime runtime, ArticleContext context, long requestTimeout) {
 
-        this.httpRequest = req;
-        this.httpResponse = resp;
+        this.httpRequest = request;
+        this.httpResponse = response;
         this.runtime = runtime;
         this.context = context;
         continuation = ContinuationSupport.getContinuation(httpRequest);
@@ -68,7 +68,8 @@ public class ArticleTmlRunnable implements TmlRunnable{
             logger.error("Expired continuation at request start!");
             abort("Internal server error");
         } else if (!continuation.isInitial()) {
-            logger.error("Non-initial continuation at request start!");
+            logger.error("Non-initial continuation at request start! Dispatcher type {}",
+                    httpRequest.getDispatcherType());
             abort("Internal server error");
         } else {
             continuation.setTimeout(requestTimeout);
