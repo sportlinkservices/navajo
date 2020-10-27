@@ -51,6 +51,9 @@ public class SQLMapHelper {
 												 boolean isLegacyMode,
 												 boolean debug,
   												 Access myAccess) throws java.sql.SQLException {
+		if(param == null) {
+			System.out.println("a");
+		}
 		
 		Access access = myAccess;
 		if (access == null) {
@@ -61,7 +64,7 @@ public class SQLMapHelper {
 		}
 		
 		if ((param == null) || (param instanceof NavajoType && !(param instanceof Binary) && ((NavajoType) param).isEmpty())) {
-			if (SQLMapConstants.POSTGRESDB.equals(dbIdentifier) || SQLMapConstants.ENTERPRISEDB.equals(dbIdentifier)) { 
+			if (SQLMapConstants.POSTGRESDB.equals(dbIdentifier) || SQLMapConstants.ENTERPRISEDB.equals(dbIdentifier) || SQLMapConstants.ORACLEDB.equals(dbIdentifier)) { 
 				if (debug) {
 					Access.writeToConsole(access, "Had to do something in order to not get the cast error from a null value, because it concerns " + dbIdentifier + "\n");
 				}
@@ -70,6 +73,7 @@ public class SQLMapHelper {
 				} else {
 					statement.setNull(idx + 1, Types.VARCHAR);
 				}
+				
 			} else {
 				statement.setNull(idx + 1, Types.VARCHAR);
 			}
